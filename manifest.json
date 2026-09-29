@@ -1,6 +1,6 @@
 {
   "id": "./",
-  "name": "TableFlow - Generic Table Notes",
+  "name": "TableFlow",
   "short_name": "TableFlow",
   "start_url": "./index.html",
   "scope": "./",
