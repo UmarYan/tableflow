@@ -181,12 +181,15 @@ html[data-theme=dark] .danger{background:#3b2022;color:#ff9c9c}
 @media(max-width:420px){.manageItem{gap:3px;padding:5px 3px}.manageItem .manageIconBtn{width:27px;flex-basis:27px}.manageItem .colTypeIcon{width:22px;flex-basis:22px}.manageItem .grow b{font-size:12px}.modal.optionModal .sheet{width:min(84vw,360px)!important;min-width:min(280px,calc(100vw - 24px))!important}}
 
 
-/* V1.17: pinned header layering and reliable mobile deck taps */
-.grid th.pinnedCell{z-index:4!important;isolation:isolate}
-.grid td.pinnedCell{z-index:3!important;background:var(--card)!important;border-right:3px solid var(--pri)!important;box-shadow:inset -3px 0 0 var(--pri)!important}
+/* V1.19: pin state, neutral separator, and topmost pinned headers */
+.grid th.pinnedCell{z-index:30!important;isolation:isolate}
+.grid td.pinnedCell{z-index:3!important;background:var(--card)!important;border-right:2px solid var(--line)!important;box-shadow:none!important;isolation:isolate}
+.grid th.pinnedCell{border-right:2px solid var(--line)!important;box-shadow:none!important}
 .grid th.pinnedCell .headerPin{display:inline-flex;align-items:center;margin-left:5px;font-size:12px;line-height:1;vertical-align:middle;color:var(--pri)}
 .manageItem .pinMark{display:none!important}
 .manageItem .manageIconBtn{flex:0 0 30px;min-width:30px;width:30px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.manageItem .manageIconBtn.pinStateOn{color:var(--pri);background:var(--pri2)!important;border-radius:8px!important}
+.manageItem .manageIconBtn.pinStateOff{color:var(--muted)}
 .manageItem .manageIconBtn svg{width:19px;height:19px;display:block;pointer-events:none}
 .manageItem .colTypeIcon{flex:0 0 24px;width:24px;text-align:center}
 .tableBottomBar,.tableBottomBar *{ -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
@@ -212,7 +215,7 @@ const KEY='my_tables_generic_v3',OLD='my_tables_generic_v2';
 const TYPES=[['text','Text'],['date','Date'],['amount','Amount'],['number','Number'],['image','Image'],['formula','Formula'],['select','Dropdown / Select'],['status','Status'],['checkbox','Checkbox'],['time','Time'],['phone','Phone number']];
 const $=id=>document.getElementById(id);let editingTable=null,folderFilter='all',selectedRows=new Set(),pendingSearchTarget=null;
 function parse(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}}
-function normalize(x){if(!x||!Array.isArray(x.tables))return{tables:[],folders:[],active:null};x.folders=Array.isArray(x.folders)?x.folders.map(f=>({id:String(f.id||Date.now()),name:String(f.name||'Folder')})):[];x.tables=x.tables.map((t,i)=>({id:String(t.id||Date.now()+i),name:String(t.name||'Untitled Table'),folderId:t.folderId?String(t.folderId):'',groupBy:t.groupBy?String(t.groupBy):'',filters:t.filters&&typeof t.filters==='object'?t.filters:{},savedFilters:Array.isArray(t.savedFilters)?t.savedFilters.map(f=>({id:String(f.id||Date.now()),name:String(f.name||'Saved filter'),filters:f.filters&&typeof f.filters==='object'?f.filters:{}})):[],search:String(t.search||''),columns:Array.isArray(t.columns)&&t.columns.length?t.columns.map((c,j)=>({id:String(c.id||'c'+j),name:String(c.name||'Column '+(j+1)),type:TYPES.some(q=>q[0]===c.type)?c.type:'text',formula:String(c.formula||''),options:Array.isArray(c.options)?c.options.map(String):[],pinned:!!c.pinned,pinOriginalIndex:Number.isInteger(c.pinOriginalIndex)&&c.pinOriginalIndex>=0?c.pinOriginalIndex:null,hidden:!!c.hidden,multi:!!c.multi,width:Number(c.width)||140,widthPct:Number(c.widthPct)||0,align:['left','center','right'].includes(c.align)?c.align:'left'})):[{id:'c1',name:'Name',type:'text',formula:'',options:[]}],rows:Array.isArray(t.rows)?t.rows.map(r=>r&&typeof r==='object'?r:{}):[]}));return{tables:x.tables,folders:x.folders,active:x.active||null}}
+function normalize(x){if(!x||!Array.isArray(x.tables))return{tables:[],folders:[],active:null};x.folders=Array.isArray(x.folders)?x.folders.map(f=>({id:String(f.id||Date.now()),name:String(f.name||'Folder')})):[];x.tables=x.tables.map((t,i)=>({id:String(t.id||Date.now()+i),name:String(t.name||'Untitled Table'),folderId:t.folderId?String(t.folderId):'',groupBy:t.groupBy?String(t.groupBy):'',filters:t.filters&&typeof t.filters==='object'?t.filters:{},savedFilters:Array.isArray(t.savedFilters)?t.savedFilters.map(f=>({id:String(f.id||Date.now()),name:String(f.name||'Saved filter'),filters:f.filters&&typeof f.filters==='object'?f.filters:{}})):[],search:String(t.search||''),columns:Array.isArray(t.columns)&&t.columns.length?t.columns.map((c,j)=>({id:String(c.id||'c'+j),name:String(c.name||'Column '+(j+1)),type:TYPES.some(q=>q[0]===c.type)?c.type:'text',formula:String(c.formula||''),options:Array.isArray(c.options)?c.options.map(String):[],pinned:!!c.pinned,hidden:!!c.hidden,multi:!!c.multi,pinOrigin:(c.pinOrigin!==null&&c.pinOrigin!==undefined&&Number.isFinite(Number(c.pinOrigin)))?Number(c.pinOrigin):null,width:Number(c.width)||140,widthPct:Number(c.widthPct)||0,align:['left','center','right'].includes(c.align)?c.align:'left'})):[{id:'c1',name:'Name',type:'text',formula:'',options:[]}],rows:Array.isArray(t.rows)?t.rows.map(r=>r&&typeof r==='object'?r:{}):[]}));return{tables:x.tables,folders:x.folders,active:x.active||null}}
 let state=normalize(parse(KEY)||parse(OLD)||{tables:[],folders:[],active:null});save();
 function save(){localStorage.setItem(KEY,JSON.stringify(state))}function getT(id){return state.tables.find(t=>String(t.id)===String(id))}function getF(id){return state.folders.find(f=>String(f.id)===String(id))}
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}function syncVisualViewport(){const vv=window.visualViewport;const h=vv?.height||window.innerHeight;const top=vv?.offsetTop||0;document.documentElement.style.setProperty('--vvh',h+'px');const modal=$('modal');if(modal?.classList.contains('open')){modal.style.top=top+'px';modal.style.height=h+'px';modal.style.bottom='auto'}else if(modal){modal.style.top='0';modal.style.height='100dvh';modal.style.bottom='0'}adjustDropdownForViewport()}
@@ -453,9 +456,9 @@ function manageColumns(id){
   let t=getT(id||state.active);if(!t)return;state.active=t.id;
   const eyeOn='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.8" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
   const eyeOff='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 6.2A9.8 9.8 0 0 1 12 6c6.1 0 9.5 6 9.5 6a15 15 0 0 1-3.2 3.7M6.2 6.8C3.8 8.4 2.5 12 2.5 12s3.4 6 9.5 6c1.2 0 2.3-.3 3.3-.7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  const pinSvgOff='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l-1 5 3 3v2H6v-2l3-3-1-5Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 13v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
-  const pinSvgOn='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l-1 5 3 3v2H6v-2l3-3-1-5Z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 13v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
-  let items=t.columns.map((c,i)=>'<div class="manageItem" data-col-id="'+esc(c.id)+'"><span class="manageDrag" title="Hold and drag to rearrange" aria-label="Rearrange"><svg viewBox="0 0 12 24" aria-hidden="true"><g fill="currentColor"><circle cx="3" cy="5" r="1.4"/><circle cx="9" cy="5" r="1.4"/><circle cx="3" cy="12" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="3" cy="19" r="1.4"/><circle cx="9" cy="19" r="1.4"/></g></svg></span><div class="grow"><b title="'+esc(c.name)+'">'+esc(c.name)+'</b></div><span class="colTypeIcon" title="'+esc(TYPES.find(x=>x[0]===c.type)?.[1]||c.type)+'">'+columnTypeIcon(c.type)+'</span><button type="button" class="manageIconBtn" title="'+(c.hidden?'Unhide column':'Hide column')+'" aria-label="'+(c.hidden?'Unhide column':'Hide column')+'" onclick="toggleColumnHiddenById(\''+esc(c.id)+'\')">'+(c.hidden?eyeOff:eyeOn)+'</button><button type="button" class="manageIconBtn pinStateBtn '+(c.pinned?'isPinned':'')+'" title="'+(c.pinned?'Unpin column':'Pin column')+'" aria-label="'+(c.pinned?'Unpin column':'Pin column')+'" aria-pressed="'+(c.pinned?'true':'false')+'" onclick="toggleColumnPinById(\''+esc(c.id)+'\',true)">'+(c.pinned?pinSvgOn:pinSvgOff)+'</button><button type="button" class="manageIconBtn" title="Edit column" aria-label="Edit column" onclick="editColumnById(\''+esc(c.id)+'\')">✎</button><button type="button" class="manageIconBtn danger" title="Delete column" aria-label="Delete column" onclick="removeColById(\''+esc(c.id)+'\')">⌫</button></div>').join('');
+  const pinOnSvg='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l-1 5 3 3v2H6v-2l3-3-1-5ZM12 13v8" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const pinOffSvg='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l-1 5 3 3v2H6v-2l3-3-1-5ZM12 13v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  let items=t.columns.map((c,i)=>`<div class="manageItem" data-col-id="${esc(c.id)}"><span class="manageDrag" title="Hold and drag to rearrange" aria-label="Rearrange"><svg viewBox="0 0 12 24" aria-hidden="true"><g fill="currentColor"><circle cx="3" cy="5" r="1.4"/><circle cx="9" cy="5" r="1.4"/><circle cx="3" cy="12" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="3" cy="19" r="1.4"/><circle cx="9" cy="19" r="1.4"/></g></svg></span><div class="grow"><b title="${esc(c.name)}">${esc(c.name)}</b></div><span class="colTypeIcon" title="${esc(TYPES.find(x=>x[0]===c.type)?.[1]||c.type)}">${columnTypeIcon(c.type)}</span><button type="button" class="manageIconBtn" title="${c.hidden?'Unhide column':'Hide column'}" aria-label="${c.hidden?'Unhide column':'Hide column'}" onclick="toggleColumnHiddenById('${esc(c.id)}')">${c.hidden?eyeOff:eyeOn}</button><button type="button" class="manageIconBtn ${c.pinned?'pinStateOn':'pinStateOff'}" title="${c.pinned?'Unpin column':'Pin column'}" aria-label="${c.pinned?'Unpin column':'Pin column'}" onclick="toggleColumnPinById('${esc(c.id)}',true)">${c.pinned?pinOnSvg:pinOffSvg}</button><button type="button" class="manageIconBtn" title="Edit column" aria-label="Edit column" onclick="editColumnById('${esc(c.id)}')">✎</button><button type="button" class="manageIconBtn danger" title="Delete column" aria-label="Delete column" onclick="removeColById('${esc(c.id)}')">⌫</button></div>`).join('');
   show('<div class="modalTop"><h2>Manage Columns</h2><button class="headerIcon" onclick="closeModal()" aria-label="Close">✕</button></div><div class="manageList" id="manageColumnList">'+items+'</div><button class="soft" style="width:100%;margin-top:8px" onclick="addCol()">＋ Add column</button><div class="footer"><button class="primary" onclick="closeModal();renderTable(getT(state.active))">✓</button></div>');setTimeout(bindColumnDrag,30)
 }
 function toggleColumnHiddenById(id){let t=getT(state.active);if(!t)return;let i=t.columns.findIndex(c=>c.id===id);if(i>=0)toggleColumnHidden(i)}
@@ -466,7 +469,31 @@ function bindColumnDrag(){const list=$('manageColumnList');if(!list)return;let d
 function editColumnDialog(i){let t=getT(state.active),c=t?.columns[i];if(!t||!c)return;show('<div class="modalTop"><h2>Edit Column</h2><button onclick="manageColumns(\''+esc(t.id)+'\')">←</button></div><div class="field"><label>Column name</label><input id="editColName" value="'+esc(c.name)+'"></div><div class="field"><label>Column width (% of screen)</label><input id="editColWidth" type="number" min=5 max=100 step=1 value="'+(Number(c.widthPct)||Math.min(100,Math.max(10,Math.round(colWidth(c)/Math.max(1,window.innerWidth)*100))) )+'"><small class="muted">5–100% of screen width</small></div><div class="field"><label>Cell text alignment</label><select id="editColAlign"><option value="left" '+((c.align||'left')==='left'?'selected':'')+'>Left</option><option value="center" '+(c.align==='center'?'selected':'')+'>Center</option><option value="right" '+(c.align==='right'?'selected':'')+'>Right</option></select></div><div class="field"><label>Type</label><select id="editColType">'+TYPES.map(x=>'<option value="'+x[0]+'" '+(c.type===x[0]?'selected':'')+'>'+x[1]+'</option>').join('')+'</select></div>'+(c.type==='formula'?'<button class="soft" style="width:100%" onclick="closeModal();formulaModal(0,\''+esc(c.id)+'\')">ƒx Edit formula</button>':'')+((c.type==='select'||c.type==='status')?'<button class="soft" style="width:100%;margin-top:8px" onclick="closeModal();optionsModal('+i+')">☷ Manage dropdown options ('+(c.options||[]).length+')</button>':'')+'<div class="footer"><button onclick="manageColumns(\''+esc(t.id)+'\')">Cancel</button><button class="primary" onclick="saveColumnEdit('+i+')">Save</button></div>')}
 function saveColumnEdit(i){let t=getT(state.active),c=t?.columns[i];if(!t||!c)return;const sc=document.querySelector('.scroll'),sx=sc?.scrollLeft||0,sy=sc?.scrollTop||0;c.name=$('editColName').value.trim()||c.name;c.type=$('editColType').value;const raw=Number($('editColWidth')?.value);if(!Number.isFinite(raw)||raw<5||raw>100){toast('Width must be between 5% and 100%');return}c.widthPct=raw;c.width=Math.max(40,Math.round(window.innerWidth*c.widthPct/100));c.align=['left','center','right'].includes($('editColAlign')?.value)?$('editColAlign').value:'left';if(c.type==='status'&&!c.options?.length)c.options=['Pending','In Progress','Done','Cancelled'];save();closeModal();renderTable(t);requestAnimationFrame(()=>{const ns=document.querySelector('.scroll');if(ns){ns.scrollLeft=sx;ns.scrollTop=sy}});toast('Column updated')}
 function toggleColumnHidden(i){let t=getT(state.active);if(!t)return;t.columns[i].hidden=!t.columns[i].hidden;save();manageColumns(t.id);toast(t.columns[i].hidden?'Column hidden':'Column shown')}
-function toggleColumnPin(i,stayManage=false){let t=getT(state.active);if(!t||!t.columns[i])return;const c=t.columns[i],pin=!c.pinned;if(pin){c.pinOriginalIndex=i;c.pinned=true;t.columns.splice(i,1);let insertAt=0;while(insertAt<t.columns.length&&t.columns[insertAt].pinned)insertAt++;t.columns.splice(insertAt,0,c)}else{c.pinned=false;t.columns.splice(i,1);const original=Number.isInteger(c.pinOriginalIndex)&&c.pinOriginalIndex>=0?c.pinOriginalIndex:t.columns.length;const insertAt=Math.max(0,Math.min(original,t.columns.length));t.columns.splice(insertAt,0,c);c.pinOriginalIndex=null}save();if(stayManage)manageColumns(t.id);else renderTable(t);toast(pin?'Column pinned beside No.':'Column restored to its previous position')}
+function toggleColumnPin(i,stayManage=false){
+  let t=getT(state.active);if(!t||!t.columns[i])return;
+  const c=t.columns[i],pin=!c.pinned;
+  if(pin){
+    c.pinned=true;
+    c.pinOrigin=Number.isFinite(Number(c.pinOrigin))?Number(c.pinOrigin):i;
+    t.columns.splice(i,1);
+    let insertAt=0;while(insertAt<t.columns.length&&t.columns[insertAt].pinned)insertAt++;
+    t.columns.splice(insertAt,0,c);
+  }else{
+    c.pinned=false;
+    const origin=Number.isFinite(Number(c.pinOrigin))?Number(c.pinOrigin):t.columns.indexOf(c);
+    t.columns.splice(i,1);
+    let target=0;
+    const nonPinned=t.columns.filter(x=>!x.pinned);
+    target=nonPinned.length;
+    for(let k=0;k<nonPinned.length;k++){
+      const oi=Number.isFinite(Number(nonPinned[k].pinOrigin))?Number(nonPinned[k].pinOrigin):k;
+      if(oi>=origin){target=k;break}
+    }
+    t.columns.splice(target,0,c);
+    c.pinOrigin=null;
+  }
+  save();if(stayManage)manageColumns(t.id);else renderTable(t);toast(pin?'Column pinned beside No.':'Column unpinned to its previous position')
+}
 function toggleColumnPinById(id,stayManage=false){let t=getT(state.active);if(!t)return;const i=t.columns.findIndex(c=>c.id===id);if(i>=0)toggleColumnPin(i,stayManage)}
 function columnMenu(colId){
   let t=getT(state.active),c=t?.columns.find(x=>x.id===colId);if(!t||!c)return;
@@ -668,12 +695,3 @@ function leaveApp(){
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));renderHome();armLeaveGuard();
 </script>
 </body></html>
-
-
-/* V1.18 pinned column visual/state and separator fixes */
-.grid th.pinnedCell{z-index:30!important;isolation:isolate;position:sticky!important}
-.grid td.pinnedCell{z-index:7!important;isolation:isolate;background:var(--card)!important;border-right:2px solid var(--line)!important;box-shadow:none!important}
-.grid th.pinnedCell{border-right:2px solid var(--line)!important;box-shadow:none!important}
-.manageItem .manageIconBtn.pinStateBtn{color:var(--muted)}
-.manageItem .manageIconBtn.pinStateBtn.isPinned{color:var(--pri);background:var(--pri2)!important}
-.manageItem .manageIconBtn.pinStateBtn svg{width:19px;height:19px}
