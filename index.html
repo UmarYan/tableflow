@@ -181,21 +181,26 @@ html[data-theme=dark] .danger{background:#3b2022;color:#ff9c9c}
 @media(max-width:420px){.manageItem{gap:3px;padding:5px 3px}.manageItem .manageIconBtn{width:27px;flex-basis:27px}.manageItem .colTypeIcon{width:22px;flex-basis:22px}.manageItem .grow b{font-size:12px}.modal.optionModal .sheet{width:min(84vw,360px)!important;min-width:min(280px,calc(100vw - 24px))!important}}
 
 
-/* V1.19: pin state, neutral separator, and topmost pinned headers */
-.grid th.pinnedCell{z-index:30!important;isolation:isolate}
-.grid td.pinnedCell{z-index:3!important;background:var(--card)!important;border-right:2px solid var(--line)!important;box-shadow:none!important;isolation:isolate}
-.grid th.pinnedCell{border-right:2px solid var(--line)!important;box-shadow:none!important}
+/* V1.2: V1.17 base + pin state, restore, centered selectable popup and stable multi-select */
+.grid th.pinnedCell{z-index:4!important;isolation:isolate}
+.grid td.pinnedCell{z-index:3!important;background:var(--card)!important;border-right:3px solid var(--pri)!important;box-shadow:inset -3px 0 0 var(--pri)!important}
 .grid th.pinnedCell .headerPin{display:inline-flex;align-items:center;margin-left:5px;font-size:12px;line-height:1;vertical-align:middle;color:var(--pri)}
 .manageItem .pinMark{display:none!important}
 .manageItem .manageIconBtn{flex:0 0 30px;min-width:30px;width:30px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center}
-.manageItem .manageIconBtn.pinStateOn{color:var(--pri);background:var(--pri2)!important;border-radius:8px!important}
-.manageItem .manageIconBtn.pinStateOff{color:var(--muted)}
 .manageItem .manageIconBtn svg{width:19px;height:19px;display:block;pointer-events:none}
 .manageItem .colTypeIcon{flex:0 0 24px;width:24px;text-align:center}
 .tableBottomBar,.tableBottomBar *{ -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .tableBottomBar button svg,.tableBottomBar button .barIcon,.tableBottomBar button .barLabel{pointer-events:none}
 .tableBottomBar button{position:relative;z-index:141;cursor:pointer}
 
+
+/* V1.2: centered selectable popup, four-item viewport, stable pinned header/cell */
+.popupScrim{position:fixed;inset:0;background:rgba(0,0,0,.34);z-index:11999;touch-action:manipulation}
+.dropdownPopup{top:50%!important;left:50%!important;transform:translate(-50%,-50%)!important;width:min(66.666vw,420px)!important;max-width:calc(100vw - 24px)!important;max-height:min(68vh,460px)!important}
+.dropdownPopup .choiceList{max-height:184px!important;flex:0 1 184px!important;overflow-y:auto!important}
+.grid .pinnedCell{border-right:2px solid var(--line)!important;box-shadow:none!important;isolation:isolate}
+.grid th.pinnedCell{z-index:100!important;position:sticky!important;border-right:2px solid var(--line)!important;box-shadow:none!important}
+.grid td.pinnedCell{z-index:20!important;position:sticky!important;border-right:2px solid var(--line)!important;box-shadow:none!important}
 </style>
 </head>
 <body>
@@ -215,7 +220,7 @@ const KEY='my_tables_generic_v3',OLD='my_tables_generic_v2';
 const TYPES=[['text','Text'],['date','Date'],['amount','Amount'],['number','Number'],['image','Image'],['formula','Formula'],['select','Dropdown / Select'],['status','Status'],['checkbox','Checkbox'],['time','Time'],['phone','Phone number']];
 const $=id=>document.getElementById(id);let editingTable=null,folderFilter='all',selectedRows=new Set(),pendingSearchTarget=null;
 function parse(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}}
-function normalize(x){if(!x||!Array.isArray(x.tables))return{tables:[],folders:[],active:null};x.folders=Array.isArray(x.folders)?x.folders.map(f=>({id:String(f.id||Date.now()),name:String(f.name||'Folder')})):[];x.tables=x.tables.map((t,i)=>({id:String(t.id||Date.now()+i),name:String(t.name||'Untitled Table'),folderId:t.folderId?String(t.folderId):'',groupBy:t.groupBy?String(t.groupBy):'',filters:t.filters&&typeof t.filters==='object'?t.filters:{},savedFilters:Array.isArray(t.savedFilters)?t.savedFilters.map(f=>({id:String(f.id||Date.now()),name:String(f.name||'Saved filter'),filters:f.filters&&typeof f.filters==='object'?f.filters:{}})):[],search:String(t.search||''),columns:Array.isArray(t.columns)&&t.columns.length?t.columns.map((c,j)=>({id:String(c.id||'c'+j),name:String(c.name||'Column '+(j+1)),type:TYPES.some(q=>q[0]===c.type)?c.type:'text',formula:String(c.formula||''),options:Array.isArray(c.options)?c.options.map(String):[],pinned:!!c.pinned,hidden:!!c.hidden,multi:!!c.multi,pinOrigin:(c.pinOrigin!==null&&c.pinOrigin!==undefined&&Number.isFinite(Number(c.pinOrigin)))?Number(c.pinOrigin):null,width:Number(c.width)||140,widthPct:Number(c.widthPct)||0,align:['left','center','right'].includes(c.align)?c.align:'left'})):[{id:'c1',name:'Name',type:'text',formula:'',options:[]}],rows:Array.isArray(t.rows)?t.rows.map(r=>r&&typeof r==='object'?r:{}):[]}));return{tables:x.tables,folders:x.folders,active:x.active||null}}
+function normalize(x){if(!x||!Array.isArray(x.tables))return{tables:[],folders:[],active:null};x.folders=Array.isArray(x.folders)?x.folders.map(f=>({id:String(f.id||Date.now()),name:String(f.name||'Folder')})):[];x.tables=x.tables.map((t,i)=>({id:String(t.id||Date.now()+i),name:String(t.name||'Untitled Table'),folderId:t.folderId?String(t.folderId):'',groupBy:t.groupBy?String(t.groupBy):'',filters:t.filters&&typeof t.filters==='object'?t.filters:{},savedFilters:Array.isArray(t.savedFilters)?t.savedFilters.map(f=>({id:String(f.id||Date.now()),name:String(f.name||'Saved filter'),filters:f.filters&&typeof f.filters==='object'?f.filters:{}})):[],search:String(t.search||''),columns:Array.isArray(t.columns)&&t.columns.length?t.columns.map((c,j)=>({id:String(c.id||'c'+j),name:String(c.name||'Column '+(j+1)),type:TYPES.some(q=>q[0]===c.type)?c.type:'text',formula:String(c.formula||''),options:Array.isArray(c.options)?c.options.map(String):[],pinned:!!c.pinned,pinOriginalIndex:Number.isInteger(c.pinOriginalIndex)?c.pinOriginalIndex:null,hidden:!!c.hidden,multi:!!c.multi,width:Number(c.width)||140,widthPct:Number(c.widthPct)||0,align:['left','center','right'].includes(c.align)?c.align:'left'})):[{id:'c1',name:'Name',type:'text',formula:'',options:[]}],rows:Array.isArray(t.rows)?t.rows.map(r=>r&&typeof r==='object'?r:{}):[]}));return{tables:x.tables,folders:x.folders,active:x.active||null}}
 let state=normalize(parse(KEY)||parse(OLD)||{tables:[],folders:[],active:null});save();
 function save(){localStorage.setItem(KEY,JSON.stringify(state))}function getT(id){return state.tables.find(t=>String(t.id)===String(id))}function getF(id){return state.folders.find(f=>String(f.id)===String(id))}
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}function syncVisualViewport(){const vv=window.visualViewport;const h=vv?.height||window.innerHeight;const top=vv?.offsetTop||0;document.documentElement.style.setProperty('--vvh',h+'px');const modal=$('modal');if(modal?.classList.contains('open')){modal.style.top=top+'px';modal.style.height=h+'px';modal.style.bottom='auto'}else if(modal){modal.style.top='0';modal.style.height='100dvh';modal.style.bottom='0'}adjustDropdownForViewport()}
@@ -389,7 +394,7 @@ function editCellPopup(rowIndex,colId,editing=false){
 }
 function saveCellPopup(rowIndex,colId){const t=getT(state.active),e=$('cellPopupValue');if(!t||!e)return;let v=e.value;if(['number','amount'].includes(t.columns.find(c=>c.id===colId)?.type)&&v!==''&&!Number.isFinite(Number(v))){toast('Enter a valid number');return}const pos=captureTablePosition();t.rows[rowIndex][colId]=v;save();closeModal();renderTable(t);restoreTablePosition(pos)}
 function openDropdown(ev,rowIndex,colId){
-  ev.preventDefault();ev.stopPropagation();closeDropdown();
+  ev.preventDefault();ev.stopPropagation();if(suppressNextDropdownOpen){suppressNextDropdownOpen=false;return;}closeDropdown();
   const t=getT(state.active),c=t?.columns.find(x=>x.id===colId);if(!t||!c)return;
   c.options=Array.isArray(c.options)?c.options:[];
   const current=Array.isArray(t.rows[rowIndex][colId])?t.rows[rowIndex][colId]:(String(t.rows[rowIndex][colId]??'').trim()?[String(t.rows[rowIndex][colId])]:[]);
@@ -399,7 +404,7 @@ function openDropdown(ev,rowIndex,colId){
   popup.__anchorRect=rect;popup.style.width=width+'px';popup.style.left='50%';
   popup.innerHTML=`<div class="popupHeading" style="display:flex;align-items:center;gap:4px;padding:2px 3px 5px"><b style="flex:1;min-width:0">${esc(c.name)}</b><button class="optionIconBtn" title="Multi-select" aria-label="Multi-select" onclick="toggleCellMulti('${esc(colId)}')">${c.multi?'☑':'☐'}</button><button class="optionIconBtn" title="Manage options" aria-label="Manage options" onclick="toggleOptionManage()">⚙</button><button class="optionIconBtn addBtn" title="Add" aria-label="Add" onclick="showCellOptionEditor('add','${esc(colId)}')">＋</button></div><div class="optionEntryPanel" id="optionEntryPanel"><input id="cellOptionEntry" type="text" autocomplete="off" autocapitalize="off" placeholder="Option name"><button class="primary" onclick="saveCellOptionEntry()">Save</button><button class="soft" onclick="hideCellOptionEditor()">✕</button></div><div class="choiceList">${c.options.map((o,j)=>`<div class="selectChoice optionManageRow ${current.includes(o)?'multiSelected':''}" data-option-index="${j}"><button type="button" class="dragHandle" title="Hold and drag" aria-label="Hold and drag">⠿</button><button type="button" class="choiceMain" style="flex:1;min-width:0;border:0;background:transparent;color:inherit;padding:5px 3px;text-align:left" onclick="chooseDropdown(${rowIndex},'${esc(colId)}','${esc(o)}')"><span>${esc(o)}</span><span class="choiceTick">${current.includes(o)?'✓':''}</span></button><button class="rowEdit" title="Edit" aria-label="Edit" onclick="showCellOptionEditor('edit','${esc(colId)}',${j})">✎</button><button class="rowDelete" title="Delete" aria-label="Delete" onclick="deleteCellOption('${esc(colId)}',${j})">⌫</button></div>`).join('')||'<div class="muted" style="padding:10px;text-align:center">No options yet.</div>'}</div><div class="popupFooter"><button class="clearOpt popupFooterIcon" title="Clear selection" aria-label="Clear selection" onclick="chooseDropdown(${rowIndex},'${esc(colId)}','')">⌫</button><button class="primary popupFooterIcon" title="Done" aria-label="Done" onclick="closeDropdown()">✓</button></div>`;
   document.body.appendChild(popup);
-  const vv=window.visualViewport,viewH=vv?.height||window.innerHeight,viewTop=vv?.offsetTop||0,maxH=Math.max(150,Math.min(380,viewH-16));popup.style.maxHeight=maxH+'px';const below=(viewTop+viewH)-rect.bottom-8,above=rect.top-viewTop-14;if(below>=Math.min(170,maxH))popup.style.top=(rect.bottom+6)+'px';else popup.style.top=Math.max(viewTop+8,rect.top-Math.min(maxH,Math.max(120,above)))+'px';
+  popup.style.top='50%';popup.style.left='50%';popup.style.transform='translate(-50%,-50%)';popup.style.maxHeight='min(68vh,460px)';
   initOptionDrag(popup,colId);
 }
 function initOptionDrag(popup,colId){
@@ -416,14 +421,24 @@ function saveCellOptionEntry(){const p=document.getElementById('activeDropdown')
 function openDropdownFromSaved(row,colId,button,layout){const fakeEvent={preventDefault(){},stopPropagation(){},currentTarget:button};openDropdown(fakeEvent,row,colId);const p=document.getElementById('activeDropdown');if(!p)return;if(layout.top)p.style.top=layout.top;if(layout.left)p.style.left=layout.left;if(layout.width)p.style.width=layout.width;p.querySelector('.choiceList').scrollTop=layout.scrollTop||0;if(layout.manage)p.classList.add('manageMode')}
 function toggleOptionManage(){const p=document.getElementById('activeDropdown');if(p)p.classList.toggle('manageMode')}
 function reorderCellOptions(colId){let t=getT(state.active),c=t?.columns.find(x=>x.id===colId);if(!t||!c)return;let ordered=[...(c.options||[])].sort((a,b)=>String(a).localeCompare(String(b),undefined,{numeric:true,sensitivity:'base'}));c.options=ordered;save();closeDropdown();renderTable(t);toast('Options rearranged')}
-function toggleCellMulti(colId){let t=getT(state.active),c=t?.columns.find(x=>x.id===colId);if(!t||!c)return;c.multi=!c.multi;t.rows.forEach(r=>{if(c.multi){let v=r[colId];if(v&&!Array.isArray(v))r[colId]=[String(v)]}else if(Array.isArray(r[colId]))r[colId]=r[colId][0]||''});save();closeDropdown();renderTable(t);toast(c.multi?'Multiple selection enabled':'Single selection enabled')}
+function toggleCellMulti(colId){
+  let t=getT(state.active),c=t?.columns.find(x=>x.id===colId);if(!t||!c)return;
+  const pos=captureTablePosition();
+  const p=$('activeDropdown'),list=p?.querySelector('.choiceList'),scrollTop=list?.scrollTop||0;
+  c.multi=!c.multi;
+  t.rows.forEach(r=>{if(c.multi){let v=r[colId];if(v&&!Array.isArray(v))r[colId]=[String(v)]}else if(Array.isArray(r[colId]))r[colId]=r[colId][0]||''});
+  save();
+  if(p){const btn=p.querySelector('[aria-label="Multi-select"]');if(btn)btn.textContent=c.multi?'☑':'☐';p.classList.toggle('multiMode',c.multi);if(list)list.scrollTop=scrollTop;}
+  restoreTablePosition(pos);
+  toast(c.multi?'Multiple selection enabled':'Single selection enabled');
+}
 function addCellOption(colId){showCellOptionEditor('add',colId)}
 function editCellOption(colId,j){showCellOptionEditor('edit',colId,j)}
 function moveCellOption(colId,j,d){let t=getT(state.active),c=t?.columns.find(x=>x.id===colId);if(!t||!c)return;let k=j+d;if(k<0||k>=c.options.length)return;[c.options[j],c.options[k]]=[c.options[k],c.options[j]];save();closeDropdown();renderTable(t);toast('Option reordered')}
 function deleteCellOption(colId,j){let t=getT(state.active),c=t?.columns.find(x=>x.id===colId);if(!t||!c)return;let old=c.options[j];askConfirm('Delete option','Remove “'+old+'” from this selectable column?',()=>{c.options.splice(j,1);t.rows.forEach(r=>{if(Array.isArray(r[colId]))r[colId]=r[colId].filter(v=>v!==old);else if(r[colId]===old)r[colId]=''});save();closeDropdown();renderTable(t);toast('Option deleted')},true)}
 function manageCellOptions(colId){const t=getT(state.active);if(!t)return;const i=t.columns.findIndex(c=>c.id===colId);closeDropdown();optionsModal(i)}
 function finishMultiSelect(){const t=getT(state.active);if(!t)return;const sc=document.querySelector('.scroll'),sx=sc?.scrollLeft||0,sy=sc?.scrollTop||0;closeDropdown();renderTable(t);requestAnimationFrame(()=>{const ns=document.querySelector('.scroll');if(ns){ns.scrollLeft=sx;ns.scrollTop=sy}})}
-function outsideDropdown(e){if(!e.target.closest('#activeDropdown'))closeDropdown()}
+let suppressNextDropdownOpen=false;function outsideDropdown(e){if(e.target.closest('#activeDropdown'))return;const cell=e.target.closest('.cellDisplay');if(cell){suppressNextDropdownOpen=true;closeDropdown()}else closeDropdown()}
 function handleDropdownScroll(e){const p=$('activeDropdown');if(p&&(e.target===p||p.contains(e.target)))return;closeDropdown()}
 function closeDropdown(){document.getElementById('activeDropdown')?.remove();document.getElementById('activeDropdownScrim')?.remove()}
 document.addEventListener('pointerdown',outsideDropdown,{capture:true})
@@ -456,9 +471,10 @@ function manageColumns(id){
   let t=getT(id||state.active);if(!t)return;state.active=t.id;
   const eyeOn='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.8" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
   const eyeOff='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 6.2A9.8 9.8 0 0 1 12 6c6.1 0 9.5 6 9.5 6a15 15 0 0 1-3.2 3.7M6.2 6.8C3.8 8.4 2.5 12 2.5 12s3.4 6 9.5 6c1.2 0 2.3-.3 3.3-.7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  const pinOnSvg='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l-1 5 3 3v2H6v-2l3-3-1-5ZM12 13v8" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  const pinOffSvg='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l-1 5 3 3v2H6v-2l3-3-1-5ZM12 13v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  let items=t.columns.map((c,i)=>`<div class="manageItem" data-col-id="${esc(c.id)}"><span class="manageDrag" title="Hold and drag to rearrange" aria-label="Rearrange"><svg viewBox="0 0 12 24" aria-hidden="true"><g fill="currentColor"><circle cx="3" cy="5" r="1.4"/><circle cx="9" cy="5" r="1.4"/><circle cx="3" cy="12" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="3" cy="19" r="1.4"/><circle cx="9" cy="19" r="1.4"/></g></svg></span><div class="grow"><b title="${esc(c.name)}">${esc(c.name)}</b></div><span class="colTypeIcon" title="${esc(TYPES.find(x=>x[0]===c.type)?.[1]||c.type)}">${columnTypeIcon(c.type)}</span><button type="button" class="manageIconBtn" title="${c.hidden?'Unhide column':'Hide column'}" aria-label="${c.hidden?'Unhide column':'Hide column'}" onclick="toggleColumnHiddenById('${esc(c.id)}')">${c.hidden?eyeOff:eyeOn}</button><button type="button" class="manageIconBtn ${c.pinned?'pinStateOn':'pinStateOff'}" title="${c.pinned?'Unpin column':'Pin column'}" aria-label="${c.pinned?'Unpin column':'Pin column'}" onclick="toggleColumnPinById('${esc(c.id)}',true)">${c.pinned?pinOnSvg:pinOffSvg}</button><button type="button" class="manageIconBtn" title="Edit column" aria-label="Edit column" onclick="editColumnById('${esc(c.id)}')">✎</button><button type="button" class="manageIconBtn danger" title="Delete column" aria-label="Delete column" onclick="removeColById('${esc(c.id)}')">⌫</button></div>`).join('');
+  const pinOff='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l-1 5 3 3v2H6v-2l3-3-1-5ZM12 13v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const pinOn='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l-1 5 3 3v2H6v-2l3-3-1-5ZM12 13v8" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const pinSvg=pinOff;
+  let items=t.columns.map((c,i)=>'<div class="manageItem" data-col-id="'+esc(c.id)+'"><span class="manageDrag" title="Hold and drag to rearrange" aria-label="Rearrange"><svg viewBox="0 0 12 24" aria-hidden="true"><g fill="currentColor"><circle cx="3" cy="5" r="1.4"/><circle cx="9" cy="5" r="1.4"/><circle cx="3" cy="12" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="3" cy="19" r="1.4"/><circle cx="9" cy="19" r="1.4"/></g></svg></span><div class="grow"><b title="'+esc(c.name)+'">'+esc(c.name)+'</b></div><span class="colTypeIcon" title="'+esc(TYPES.find(x=>x[0]===c.type)?.[1]||c.type)+'">'+columnTypeIcon(c.type)+'</span><button type="button" class="manageIconBtn" title="'+(c.hidden?'Unhide column':'Hide column')+'" aria-label="'+(c.hidden?'Unhide column':'Hide column')+'" onclick="toggleColumnHiddenById(\''+esc(c.id)+'\')">'+(c.hidden?eyeOff:eyeOn)+'</button><button type="button" class="manageIconBtn" title="'+(c.pinned?'Unpin column':'Pin column')+'" aria-label="'+(c.pinned?'Unpin column':'Pin column')+'" onclick="toggleColumnPinById(\''+esc(c.id)+'\',true)">'+(c.pinned?pinOn:pinOff)+'</button><button type="button" class="manageIconBtn" title="Edit column" aria-label="Edit column" onclick="editColumnById(\''+esc(c.id)+'\')">✎</button><button type="button" class="manageIconBtn danger" title="Delete column" aria-label="Delete column" onclick="removeColById(\''+esc(c.id)+'\')">⌫</button></div>').join('');
   show('<div class="modalTop"><h2>Manage Columns</h2><button class="headerIcon" onclick="closeModal()" aria-label="Close">✕</button></div><div class="manageList" id="manageColumnList">'+items+'</div><button class="soft" style="width:100%;margin-top:8px" onclick="addCol()">＋ Add column</button><div class="footer"><button class="primary" onclick="closeModal();renderTable(getT(state.active))">✓</button></div>');setTimeout(bindColumnDrag,30)
 }
 function toggleColumnHiddenById(id){let t=getT(state.active);if(!t)return;let i=t.columns.findIndex(c=>c.id===id);if(i>=0)toggleColumnHidden(i)}
@@ -468,31 +484,40 @@ function removeColById(id){let t=getT(state.active);if(!t)return;let i=t.columns
 function bindColumnDrag(){const list=$('manageColumnList');if(!list)return;let dragged=null;list.querySelectorAll('.manageItem').forEach(item=>{const handle=item.querySelector('.manageDrag');if(!handle)return;handle.addEventListener('pointerdown',e=>{e.preventDefault();dragged=item;item.classList.add('dragging');try{handle.setPointerCapture(e.pointerId)}catch(_){}});handle.addEventListener('pointermove',e=>{if(!dragged)return;const target=[...list.querySelectorAll('.manageItem:not(.dragging)')].find(x=>{const r=x.getBoundingClientRect();return e.clientY<r.top+r.height/2});if(target)list.insertBefore(dragged,target);else list.appendChild(dragged)});const finish=()=>{if(!dragged)return;dragged.classList.remove('dragging');let t=getT(state.active);if(t){const ids=[...list.querySelectorAll('.manageItem')].map(x=>x.dataset.colId),byId=new Map(t.columns.map(c=>[c.id,c]));t.columns=ids.map(id=>byId.get(id)).filter(Boolean);save()}dragged=null};handle.addEventListener('pointerup',finish);handle.addEventListener('pointercancel',finish)})}
 function editColumnDialog(i){let t=getT(state.active),c=t?.columns[i];if(!t||!c)return;show('<div class="modalTop"><h2>Edit Column</h2><button onclick="manageColumns(\''+esc(t.id)+'\')">←</button></div><div class="field"><label>Column name</label><input id="editColName" value="'+esc(c.name)+'"></div><div class="field"><label>Column width (% of screen)</label><input id="editColWidth" type="number" min=5 max=100 step=1 value="'+(Number(c.widthPct)||Math.min(100,Math.max(10,Math.round(colWidth(c)/Math.max(1,window.innerWidth)*100))) )+'"><small class="muted">5–100% of screen width</small></div><div class="field"><label>Cell text alignment</label><select id="editColAlign"><option value="left" '+((c.align||'left')==='left'?'selected':'')+'>Left</option><option value="center" '+(c.align==='center'?'selected':'')+'>Center</option><option value="right" '+(c.align==='right'?'selected':'')+'>Right</option></select></div><div class="field"><label>Type</label><select id="editColType">'+TYPES.map(x=>'<option value="'+x[0]+'" '+(c.type===x[0]?'selected':'')+'>'+x[1]+'</option>').join('')+'</select></div>'+(c.type==='formula'?'<button class="soft" style="width:100%" onclick="closeModal();formulaModal(0,\''+esc(c.id)+'\')">ƒx Edit formula</button>':'')+((c.type==='select'||c.type==='status')?'<button class="soft" style="width:100%;margin-top:8px" onclick="closeModal();optionsModal('+i+')">☷ Manage dropdown options ('+(c.options||[]).length+')</button>':'')+'<div class="footer"><button onclick="manageColumns(\''+esc(t.id)+'\')">Cancel</button><button class="primary" onclick="saveColumnEdit('+i+')">Save</button></div>')}
 function saveColumnEdit(i){let t=getT(state.active),c=t?.columns[i];if(!t||!c)return;const sc=document.querySelector('.scroll'),sx=sc?.scrollLeft||0,sy=sc?.scrollTop||0;c.name=$('editColName').value.trim()||c.name;c.type=$('editColType').value;const raw=Number($('editColWidth')?.value);if(!Number.isFinite(raw)||raw<5||raw>100){toast('Width must be between 5% and 100%');return}c.widthPct=raw;c.width=Math.max(40,Math.round(window.innerWidth*c.widthPct/100));c.align=['left','center','right'].includes($('editColAlign')?.value)?$('editColAlign').value:'left';if(c.type==='status'&&!c.options?.length)c.options=['Pending','In Progress','Done','Cancelled'];save();closeModal();renderTable(t);requestAnimationFrame(()=>{const ns=document.querySelector('.scroll');if(ns){ns.scrollLeft=sx;ns.scrollTop=sy}});toast('Column updated')}
-function toggleColumnHidden(i){let t=getT(state.active);if(!t)return;t.columns[i].hidden=!t.columns[i].hidden;save();manageColumns(t.id);toast(t.columns[i].hidden?'Column hidden':'Column shown')}
+function toggleColumnHidden(i){
+  let t=getT(state.active);if(!t||!t.columns[i])return;
+  const pos=captureTablePosition();
+  t.columns[i].hidden=!t.columns[i].hidden;
+  save();
+  renderTable(t);
+  restoreTablePosition(pos);
+  requestAnimationFrame(()=>manageColumns(t.id));
+  toast(t.columns[i].hidden?'Column hidden':'Column shown');
+}
 function toggleColumnPin(i,stayManage=false){
   let t=getT(state.active);if(!t||!t.columns[i])return;
   const c=t.columns[i],pin=!c.pinned;
+  const pos=captureTablePosition();
   if(pin){
+    c.pinOriginalIndex=i;
     c.pinned=true;
-    c.pinOrigin=Number.isFinite(Number(c.pinOrigin))?Number(c.pinOrigin):i;
     t.columns.splice(i,1);
-    let insertAt=0;while(insertAt<t.columns.length&&t.columns[insertAt].pinned)insertAt++;
+    let insertAt=0;
+    while(insertAt<t.columns.length&&t.columns[insertAt].pinned)insertAt++;
     t.columns.splice(insertAt,0,c);
   }else{
     c.pinned=false;
-    const origin=Number.isFinite(Number(c.pinOrigin))?Number(c.pinOrigin):t.columns.indexOf(c);
+    const oldIndex=Number.isInteger(c.pinOriginalIndex)?c.pinOriginalIndex:t.columns.length;
+    c.pinOriginalIndex=null;
     t.columns.splice(i,1);
-    let target=0;
-    const nonPinned=t.columns.filter(x=>!x.pinned);
-    target=nonPinned.length;
-    for(let k=0;k<nonPinned.length;k++){
-      const oi=Number.isFinite(Number(nonPinned[k].pinOrigin))?Number(nonPinned[k].pinOrigin):k;
-      if(oi>=origin){target=k;break}
-    }
-    t.columns.splice(target,0,c);
-    c.pinOrigin=null;
+    const insertAt=Math.max(0,Math.min(oldIndex,t.columns.length));
+    t.columns.splice(insertAt,0,c);
   }
-  save();if(stayManage)manageColumns(t.id);else renderTable(t);toast(pin?'Column pinned beside No.':'Column unpinned to its previous position')
+  save();
+  renderTable(t);
+  restoreTablePosition(pos);
+  if(stayManage)requestAnimationFrame(()=>manageColumns(t.id));
+  toast(pin?'Column pinned beside No.':'Column unpinned');
 }
 function toggleColumnPinById(id,stayManage=false){let t=getT(state.active);if(!t)return;const i=t.columns.findIndex(c=>c.id===id);if(i>=0)toggleColumnPin(i,stayManage)}
 function columnMenu(colId){
