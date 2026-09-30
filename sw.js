@@ -1,4 +1,4 @@
-const CACHE = 'tableflow-v1.15';
+const CACHE = 'tableflow-v1.16';
 const ASSETS = [
   './',
   './index.html',
