@@ -74,11 +74,23 @@ html[data-theme=dark] .danger{background:#3b2022;color:#ff9c9c}
 .tableBottomBar .barInner{justify-content:space-between;padding:0 8px}
 .tableBottomBar .barInner button:first-child{order:0}
 .tableBottomBar .barInner button{flex:1}
-.dropdownPopup .selectChoice{display:flex;align-items:center;gap:10px;width:100%;min-height:42px;padding:10px 12px;border-radius:10px;text-align:left;background:transparent;color:var(--ink);white-space:normal}
+.dropdownPopup .selectChoice{display:flex;align-items:center;gap:7px;width:100%;min-height:42px;padding:6px 7px;border-radius:10px;text-align:left;background:var(--pri2);color:var(--ink);white-space:normal;margin:5px 0;box-sizing:border-box}
 .dropdownPopup .selectChoice .choiceTick{margin-left:auto;color:var(--pri);font-weight:800}
 .dropdownPopup .selectChoice.multiSelected{background:var(--pri2)!important}
-.dropdownPopup .popupFooter{display:flex;gap:8px;padding-top:8px;margin-top:6px;border-top:1px solid var(--line)}
+.dropdownPopup .choiceList{max-height:min(52vh,360px);overflow-y:auto;overscroll-behavior:contain;padding:1px 2px 3px}
+.dropdownPopup .popupFooter{display:flex;gap:8px;padding-top:8px;margin-top:6px;border-top:1px solid var(--line);background:var(--card)}
 .dropdownPopup .popupFooter button{flex:1}
+.dropdownPopup .optionIconBtn{width:34px;height:34px;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;border-radius:8px!important;font-size:19px;color:var(--ink);display:grid;place-items:center}
+.dropdownPopup .optionIconBtn:hover,.dropdownPopup .optionIconBtn:active{background:var(--pri2)!important;color:var(--pri)}
+.dropdownPopup .optionIconBtn.addBtn{margin-left:auto}
+.dropdownPopup .manageActions{display:none;align-items:center;gap:2px}
+.dropdownPopup.manageMode .manageActions{display:flex}
+.dropdownPopup .rowEdit,.dropdownPopup .rowDelete{display:none;width:31px;height:31px;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;border-radius:7px!important;place-items:center;font-size:17px;color:var(--ink)}
+.dropdownPopup.manageMode .rowEdit,.dropdownPopup.manageMode .rowDelete{display:grid}
+.dropdownPopup .rowEdit:active,.dropdownPopup .rowDelete:active{background:var(--card)!important}
+.dropdownPopup .dragHandle{display:none;width:28px;height:32px;align-items:center;justify-content:center;border:0;background:transparent;color:var(--muted);font-size:20px;touch-action:none;cursor:grab;user-select:none}
+.dropdownPopup.manageMode .dragHandle{display:flex}
+.dropdownPopup .selectChoice.dragging{opacity:.55;outline:2px dashed var(--pri)}
 @media(max-width:650px){.tableOpen .scroll{max-height:calc(100dvh - 205px)}.tableBottomBar .barInner{padding:0 2px}.tableBottomBar button{min-width:0;padding:4px 3px;font-size:11px}}
 
 
@@ -290,9 +302,39 @@ function openDropdown(ev,rowIndex,colId){
   const rect=ev.currentTarget.getBoundingClientRect(),width=Math.min(330,window.innerWidth-16),left=Math.min(Math.max(8,rect.left),Math.max(8,window.innerWidth-width-8));
   let top=rect.bottom+6;if(top+320>window.innerHeight)top=Math.max(8,rect.top-320);
   popup.style.width=width+'px';popup.style.left=left+'px';popup.style.top=top+'px';
-  popup.innerHTML='<div class="popupHeading" style="display:flex;align-items:center;gap:6px;padding:2px 3px 5px"><b style="flex:1">'+esc(c.name)+'</b><button class="optionIconBtn" title="Add" aria-label="Add" onclick="addCellOption(\''+esc(colId)+'\')">＋</button><button class="optionIconBtn" title="Rearrange" aria-label="Rearrange" onclick="reorderCellOptions(\''+esc(colId)+'\')">☷</button><button class="optionIconBtn" title="Multi-select" aria-label="Multi-select" onclick="toggleCellMulti(\''+esc(colId)+'\')">'+(c.multi?'☑':'☐')+'</button></div><div class="choiceList">'+(c.options.map((o,j)=>'<div class="selectChoice optionManageRow '+(current.includes(o)?'multiSelected':'')+'"><button type="button" class="choiceMain" onclick="chooseDropdown('+rowIndex+',\''+esc(colId)+'\',\''+esc(o)+'\')"><span>'+esc(o)+'</span><span class="choiceTick">'+(current.includes(o)?'✓':'')+'</span></button><button class="rowEdit" title="Edit" aria-label="Edit" onclick="editCellOption(\''+esc(colId)+'\','+j+')">✎</button><button class="rowDelete" title="Delete" aria-label="Delete" onclick="deleteCellOption(\''+esc(colId)+'\','+j+')">⌫</button></div>').join('')||'<div class="muted" style="padding:10px;text-align:center">No options yet.</div>')+'</div><div class="popupFooter"><button class="clearOpt" onclick="chooseDropdown('+rowIndex+',\''+esc(colId)+'\',\'\')">— Clear selection —</button><button class="primary" onclick="closeDropdown()">Done</button></div>';
+  popup.innerHTML=`<div class="popupHeading" style="display:flex;align-items:center;gap:4px;padding:2px 3px 5px"><b style="flex:1;min-width:0">${esc(c.name)}</b><button class="optionIconBtn" title="Multi-select" aria-label="Multi-select" onclick="toggleCellMulti('${esc(colId)}')">${c.multi?'☑':'☐'}</button><button class="optionIconBtn" title="Manage options" aria-label="Manage options" onclick="toggleOptionManage()">⚙</button><button class="optionIconBtn addBtn" title="Add" aria-label="Add" onclick="addCellOption('${esc(colId)}')">＋</button></div><div class="choiceList">${c.options.map((o,j)=>`<div class="selectChoice optionManageRow ${current.includes(o)?'multiSelected':''}" data-option-index="${j}"><button type="button" class="dragHandle" title="Hold and drag" aria-label="Hold and drag">⠿</button><button type="button" class="choiceMain" style="flex:1;min-width:0;border:0;background:transparent;color:inherit;padding:5px 3px;text-align:left" onclick="chooseDropdown(${rowIndex},'${esc(colId)}','${esc(o)}')"><span>${esc(o)}</span><span class="choiceTick">${current.includes(o)?'✓':''}</span></button><button class="rowEdit" title="Edit" aria-label="Edit" onclick="editCellOption('${esc(colId)}',${j})">✎</button><button class="rowDelete" title="Delete" aria-label="Delete" onclick="deleteCellOption('${esc(colId)}',${j})">⌫</button></div>`).join('')||'<div class="muted" style="padding:10px;text-align:center">No options yet.</div>'}</div><div class="popupFooter"><button class="clearOpt" onclick="chooseDropdown(${rowIndex},'${esc(colId)}','')">— Clear selection —</button><button class="primary" onclick="closeDropdown()">Done</button></div>`;
   document.body.appendChild(popup);
+  initOptionDrag(popup, colId);
 }
+function initOptionDrag(popup,colId){
+  const list=popup.querySelector('.choiceList'); if(!list)return;
+  list.querySelectorAll('.dragHandle').forEach(handle=>{
+    let timer=null,dragging=null;
+    const cancel=()=>{if(timer){clearTimeout(timer);timer=null}};
+    handle.addEventListener('pointerdown',e=>{
+      e.preventDefault(); e.stopPropagation(); cancel();
+      const row=handle.closest('.selectChoice');
+      timer=setTimeout(()=>{
+        dragging=row; row.classList.add('dragging'); handle.setPointerCapture?.(e.pointerId);
+        toast('Hold and drag to rearrange');
+      },450);
+    });
+    handle.addEventListener('pointermove',e=>{
+      if(!dragging)return; e.preventDefault();
+      const rows=[...list.querySelectorAll('.selectChoice')].filter(r=>r!==dragging);
+      let target=null;
+      for(const r of rows){const b=r.getBoundingClientRect(); if(e.clientY < b.top+b.height/2){target=r;break}}
+      if(target)list.insertBefore(dragging,target); else if(rows.length)list.appendChild(dragging);
+    });
+    const finish=()=>{cancel(); if(!dragging)return; dragging.classList.remove('dragging'); dragging=null;
+      const t=getT(state.active),c=t?.columns.find(x=>x.id===colId); if(!t||!c)return;
+      c.options=[...list.querySelectorAll('.selectChoice')].map(r=>r.querySelector('.choiceMain span')?.textContent||'').filter(Boolean);
+      save();
+    };
+    handle.addEventListener('pointerup',finish); handle.addEventListener('pointercancel',finish); handle.addEventListener('pointerleave',e=>{if(!dragging)cancel()});
+  });
+}
+function toggleOptionManage(){const p=document.getElementById('activeDropdown');if(p)p.classList.toggle('manageMode')}
 function reorderCellOptions(colId){let t=getT(state.active),c=t?.columns.find(x=>x.id===colId);if(!t||!c)return;let ordered=[...(c.options||[])].sort((a,b)=>String(a).localeCompare(String(b),undefined,{numeric:true,sensitivity:'base'}));c.options=ordered;save();closeDropdown();renderTable(t);toast('Options rearranged')}
 function toggleCellMulti(colId){let t=getT(state.active),c=t?.columns.find(x=>x.id===colId);if(!t||!c)return;c.multi=!c.multi;t.rows.forEach(r=>{if(c.multi){let v=r[colId];if(v&&!Array.isArray(v))r[colId]=[String(v)]}else if(Array.isArray(r[colId]))r[colId]=r[colId][0]||''});save();closeDropdown();renderTable(t);toast(c.multi?'Multiple selection enabled':'Single selection enabled')}
 function addCellOption(colId){let t=getT(state.active),c=t?.columns.find(x=>x.id===colId);if(!t||!c)return;let n=prompt('Option name','New option');if(!n?.trim())return;c.options=Array.isArray(c.options)?c.options:[];c.options.push(n.trim());save();closeDropdown();renderTable(t);toast('Option added')}
