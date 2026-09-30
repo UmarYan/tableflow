@@ -91,6 +91,17 @@ html[data-theme=dark] .danger{background:#3b2022;color:#ff9c9c}
 .dropdownPopup .dragHandle{display:none;width:28px;height:32px;align-items:center;justify-content:center;border:0;background:transparent;color:var(--muted);font-size:20px;touch-action:none;cursor:grab;user-select:none}
 .dropdownPopup.manageMode .dragHandle{display:flex}
 .dropdownPopup .selectChoice.dragging{opacity:.55;outline:2px dashed var(--pri)}
+/* V1.13 selectable popup scroll + touch reorder */
+.dropdownPopup{display:flex;flex-direction:column;max-height:calc(100dvh - 20px);overflow:hidden;overscroll-behavior:contain;box-sizing:border-box}
+.dropdownPopup .popupHeading,.dropdownPopup .optionEntryPanel,.dropdownPopup .popupFooter{flex:0 0 auto}
+.dropdownPopup .choiceList{display:block;flex:1 1 auto;min-height:48px;max-height:none;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+.dropdownPopup .selectChoice{flex:0 0 auto;background:var(--pri2);border:1px solid #2e7d321c}
+.dropdownPopup .dragHandle{touch-action:none;-webkit-user-select:none;user-select:none}
+.dropdownPopup .optionEntryPanel{display:none;gap:6px;align-items:center;padding:5px 2px}
+.dropdownPopup .optionEntryPanel.open{display:flex}
+.dropdownPopup .optionEntryPanel input{min-width:0;flex:1;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);font:inherit}
+.dropdownPopup .optionEntryPanel button{width:auto;flex:0 0 auto;padding:8px 10px}
+
 @media(max-width:650px){.tableOpen .scroll{max-height:calc(100dvh - 205px)}.tableBottomBar .barInner{padding:0 2px}.tableBottomBar button{min-width:0;padding:4px 3px;font-size:11px}}
 
 
@@ -300,45 +311,33 @@ function openDropdown(ev,rowIndex,colId){
   const current=Array.isArray(t.rows[rowIndex][colId])?t.rows[rowIndex][colId]:(String(t.rows[rowIndex][colId]??'').trim()?[String(t.rows[rowIndex][colId])]:[]);
   const popup=document.createElement('div');popup.className='dropdownPopup';popup.id='activeDropdown';popup.dataset.row=rowIndex;popup.dataset.col=colId;popup.__cellButton=ev.currentTarget;
   const rect=ev.currentTarget.getBoundingClientRect(),width=Math.min(330,window.innerWidth-16),left=Math.min(Math.max(8,rect.left),Math.max(8,window.innerWidth-width-8));
-  let top=rect.bottom+6;if(top+320>window.innerHeight)top=Math.max(8,rect.top-320);
-  popup.style.width=width+'px';popup.style.left=left+'px';popup.style.top=top+'px';
-  popup.innerHTML=`<div class="popupHeading" style="display:flex;align-items:center;gap:4px;padding:2px 3px 5px"><b style="flex:1;min-width:0">${esc(c.name)}</b><button class="optionIconBtn" title="Multi-select" aria-label="Multi-select" onclick="toggleCellMulti('${esc(colId)}')">${c.multi?'☑':'☐'}</button><button class="optionIconBtn" title="Manage options" aria-label="Manage options" onclick="toggleOptionManage()">⚙</button><button class="optionIconBtn addBtn" title="Add" aria-label="Add" onclick="addCellOption('${esc(colId)}')">＋</button></div><div class="choiceList">${c.options.map((o,j)=>`<div class="selectChoice optionManageRow ${current.includes(o)?'multiSelected':''}" data-option-index="${j}"><button type="button" class="dragHandle" title="Hold and drag" aria-label="Hold and drag">⠿</button><button type="button" class="choiceMain" style="flex:1;min-width:0;border:0;background:transparent;color:inherit;padding:5px 3px;text-align:left" onclick="chooseDropdown(${rowIndex},'${esc(colId)}','${esc(o)}')"><span>${esc(o)}</span><span class="choiceTick">${current.includes(o)?'✓':''}</span></button><button class="rowEdit" title="Edit" aria-label="Edit" onclick="editCellOption('${esc(colId)}',${j})">✎</button><button class="rowDelete" title="Delete" aria-label="Delete" onclick="deleteCellOption('${esc(colId)}',${j})">⌫</button></div>`).join('')||'<div class="muted" style="padding:10px;text-align:center">No options yet.</div>'}</div><div class="popupFooter"><button class="clearOpt" onclick="chooseDropdown(${rowIndex},'${esc(colId)}','')">— Clear selection —</button><button class="primary" onclick="closeDropdown()">Done</button></div>`;
+  popup.style.width=width+'px';popup.style.left=left+'px';
+  popup.innerHTML=`<div class="popupHeading" style="display:flex;align-items:center;gap:4px;padding:2px 3px 5px"><b style="flex:1;min-width:0">${esc(c.name)}</b><button class="optionIconBtn" title="Multi-select" aria-label="Multi-select" onclick="toggleCellMulti('${esc(colId)}')">${c.multi?'☑':'☐'}</button><button class="optionIconBtn" title="Manage options" aria-label="Manage options" onclick="toggleOptionManage()">⚙</button><button class="optionIconBtn addBtn" title="Add" aria-label="Add" onclick="showCellOptionEditor('add','${esc(colId)}')">＋</button></div><div class="optionEntryPanel" id="optionEntryPanel"><input id="cellOptionEntry" type="text" autocomplete="off" autocapitalize="off" placeholder="Option name"><button class="primary" onclick="saveCellOptionEntry()">Save</button><button class="soft" onclick="hideCellOptionEditor()">✕</button></div><div class="choiceList">${c.options.map((o,j)=>`<div class="selectChoice optionManageRow ${current.includes(o)?'multiSelected':''}" data-option-index="${j}"><button type="button" class="dragHandle" title="Hold and drag" aria-label="Hold and drag">⠿</button><button type="button" class="choiceMain" style="flex:1;min-width:0;border:0;background:transparent;color:inherit;padding:5px 3px;text-align:left" onclick="chooseDropdown(${rowIndex},'${esc(colId)}','${esc(o)}')"><span>${esc(o)}</span><span class="choiceTick">${current.includes(o)?'✓':''}</span></button><button class="rowEdit" title="Edit" aria-label="Edit" onclick="showCellOptionEditor('edit','${esc(colId)}',${j})">✎</button><button class="rowDelete" title="Delete" aria-label="Delete" onclick="deleteCellOption('${esc(colId)}',${j})">⌫</button></div>`).join('')||'<div class="muted" style="padding:10px;text-align:center">No options yet.</div>'}</div><div class="popupFooter"><button class="clearOpt" onclick="chooseDropdown(${rowIndex},'${esc(colId)}','')">Clear selection</button><button class="primary" onclick="closeDropdown()">Done</button></div>`;
   document.body.appendChild(popup);
-  initOptionDrag(popup, colId);
+  const desiredTop=rect.bottom+6;const availableBelow=window.innerHeight-desiredTop-8;const availableAbove=rect.top-14;
+  if(availableBelow>=170){popup.style.top=desiredTop+'px';popup.style.maxHeight=Math.min(window.innerHeight-desiredTop-8,380)+'px'}
+  else {popup.style.top=Math.max(8,rect.top-Math.min(380,Math.max(170,availableAbove)))+'px';popup.style.maxHeight=Math.min(window.innerHeight-16,Math.max(170,availableAbove))+'px'}
+  initOptionDrag(popup,colId);
 }
 function initOptionDrag(popup,colId){
-  const list=popup.querySelector('.choiceList'); if(!list)return;
+  const list=popup.querySelector('.choiceList');if(!list)return;let dragging=null,startY=0,moved=false;
+  const getRows=()=>[...list.querySelectorAll('.selectChoice')];
   list.querySelectorAll('.dragHandle').forEach(handle=>{
-    let timer=null,dragging=null;
-    const cancel=()=>{if(timer){clearTimeout(timer);timer=null}};
-    handle.addEventListener('pointerdown',e=>{
-      e.preventDefault(); e.stopPropagation(); cancel();
-      const row=handle.closest('.selectChoice');
-      timer=setTimeout(()=>{
-        dragging=row; row.classList.add('dragging'); handle.setPointerCapture?.(e.pointerId);
-        toast('Hold and drag to rearrange');
-      },450);
-    });
-    handle.addEventListener('pointermove',e=>{
-      if(!dragging)return; e.preventDefault();
-      const rows=[...list.querySelectorAll('.selectChoice')].filter(r=>r!==dragging);
-      let target=null;
-      for(const r of rows){const b=r.getBoundingClientRect(); if(e.clientY < b.top+b.height/2){target=r;break}}
-      if(target)list.insertBefore(dragging,target); else if(rows.length)list.appendChild(dragging);
-    });
-    const finish=()=>{cancel(); if(!dragging)return; dragging.classList.remove('dragging'); dragging=null;
-      const t=getT(state.active),c=t?.columns.find(x=>x.id===colId); if(!t||!c)return;
-      c.options=[...list.querySelectorAll('.selectChoice')].map(r=>r.querySelector('.choiceMain span')?.textContent||'').filter(Boolean);
-      save();
-    };
-    handle.addEventListener('pointerup',finish); handle.addEventListener('pointercancel',finish); handle.addEventListener('pointerleave',e=>{if(!dragging)cancel()});
+    handle.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();dragging=handle.closest('.selectChoice');startY=e.clientY;moved=false;dragging.classList.add('dragging');try{handle.setPointerCapture(e.pointerId)}catch(_){};});
+    handle.addEventListener('pointermove',e=>{if(!dragging)return;e.preventDefault();moved=moved||Math.abs(e.clientY-startY)>3;const rows=getRows().filter(r=>r!==dragging);let target=null;for(const r of rows){const b=r.getBoundingClientRect();if(e.clientY<b.top+b.height/2){target=r;break}}if(target)list.insertBefore(dragging,target);else if(rows.length)list.appendChild(dragging);const box=list.getBoundingClientRect();if(e.clientY<box.top+28)list.scrollTop-=12;else if(e.clientY>box.bottom-28)list.scrollTop+=12;});
+    const finish=()=>{if(!dragging)return;const row=dragging;row.classList.remove('dragging');dragging=null;const t=getT(state.active),c=t?.columns.find(x=>x.id===colId);if(!t||!c)return;c.options=getRows().map(r=>r.querySelector('.choiceMain span')?.textContent||'').filter(Boolean);save();if(moved)toast('Option order saved')};
+    handle.addEventListener('pointerup',finish);handle.addEventListener('pointercancel',finish);
   });
 }
+function showCellOptionEditor(mode,colId,index){const p=document.getElementById('activeDropdown'),t=getT(state.active),c=t?.columns.find(x=>x.id===colId);if(!p||!c)return;const panel=p.querySelector('#optionEntryPanel'),input=p.querySelector('#cellOptionEntry');input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();saveCellOptionEntry()}};panel.dataset.mode=mode;panel.dataset.index=mode==='edit'?String(index):'';panel.dataset.col=colId;input.value=mode==='edit'?(c.options[index]||''):'';input.placeholder=mode==='edit'?'Edit option':'Option name';panel.classList.add('open');setTimeout(()=>input.focus(),30)}
+function hideCellOptionEditor(){const p=document.getElementById('activeDropdown');if(!p)return;const panel=p.querySelector('#optionEntryPanel');panel.classList.remove('open');panel.dataset.mode='';panel.dataset.index='';const input=p.querySelector('#cellOptionEntry');if(input)input.value=''}
+function saveCellOptionEntry(){const p=document.getElementById('activeDropdown');if(!p)return;const panel=p.querySelector('#optionEntryPanel'),input=p.querySelector('#cellOptionEntry'),mode=panel.dataset.mode,colId=panel.dataset.col,n=input.value.trim(),t=getT(state.active),c=t?.columns.find(x=>x.id===colId);if(!n||!c){input.focus();return}c.options=Array.isArray(c.options)?c.options:[];if(mode==='edit'){const j=Number(panel.dataset.index),old=c.options[j];if(old===n){hideCellOptionEditor();return}c.options[j]=n;t.rows.forEach(r=>{if(Array.isArray(r[colId]))r[colId]=r[colId].map(v=>v===old?n:v);else if(r[colId]===old)r[colId]=n});}else{if(c.options.includes(n)){toast('This option already exists');input.focus();return}c.options.push(n)}save();const row=Number(p.dataset.row),button=p.__cellButton;const top=p.style.top,left=p.style.left,width=p.style.width;const scrollTop=p.querySelector('.choiceList')?.scrollTop||0;const manage=p.classList.contains('manageMode');openDropdownFromSaved(row,colId,button,{top,left,width,scrollTop,manage});toast(mode==='edit'?'Option updated':'Option added')}
+function openDropdownFromSaved(row,colId,button,layout){const fakeEvent={preventDefault(){},stopPropagation(){},currentTarget:button};openDropdown(fakeEvent,row,colId);const p=document.getElementById('activeDropdown');if(!p)return;if(layout.top)p.style.top=layout.top;if(layout.left)p.style.left=layout.left;if(layout.width)p.style.width=layout.width;p.querySelector('.choiceList').scrollTop=layout.scrollTop||0;if(layout.manage)p.classList.add('manageMode')}
 function toggleOptionManage(){const p=document.getElementById('activeDropdown');if(p)p.classList.toggle('manageMode')}
 function reorderCellOptions(colId){let t=getT(state.active),c=t?.columns.find(x=>x.id===colId);if(!t||!c)return;let ordered=[...(c.options||[])].sort((a,b)=>String(a).localeCompare(String(b),undefined,{numeric:true,sensitivity:'base'}));c.options=ordered;save();closeDropdown();renderTable(t);toast('Options rearranged')}
 function toggleCellMulti(colId){let t=getT(state.active),c=t?.columns.find(x=>x.id===colId);if(!t||!c)return;c.multi=!c.multi;t.rows.forEach(r=>{if(c.multi){let v=r[colId];if(v&&!Array.isArray(v))r[colId]=[String(v)]}else if(Array.isArray(r[colId]))r[colId]=r[colId][0]||''});save();closeDropdown();renderTable(t);toast(c.multi?'Multiple selection enabled':'Single selection enabled')}
-function addCellOption(colId){let t=getT(state.active),c=t?.columns.find(x=>x.id===colId);if(!t||!c)return;let n=prompt('Option name','New option');if(!n?.trim())return;c.options=Array.isArray(c.options)?c.options:[];c.options.push(n.trim());save();closeDropdown();renderTable(t);toast('Option added')}
-function editCellOption(colId,j){let t=getT(state.active),c=t?.columns.find(x=>x.id===colId);if(!t||!c)return;let old=c.options[j],n=prompt('Edit option',old);if(!n?.trim()||n.trim()===old)return;c.options[j]=n.trim();t.rows.forEach(r=>{if(Array.isArray(r[colId]))r[colId]=r[colId].map(v=>v===old?n.trim():v);else if(r[colId]===old)r[colId]=n.trim()});save();closeDropdown();renderTable(t);toast('Option updated')}
+function addCellOption(colId){showCellOptionEditor('add',colId)}
+function editCellOption(colId,j){showCellOptionEditor('edit',colId,j)}
 function moveCellOption(colId,j,d){let t=getT(state.active),c=t?.columns.find(x=>x.id===colId);if(!t||!c)return;let k=j+d;if(k<0||k>=c.options.length)return;[c.options[j],c.options[k]]=[c.options[k],c.options[j]];save();closeDropdown();renderTable(t);toast('Option reordered')}
 function deleteCellOption(colId,j){let t=getT(state.active),c=t?.columns.find(x=>x.id===colId);if(!t||!c)return;let old=c.options[j];askConfirm('Delete option','Remove “'+old+'” from this selectable column?',()=>{c.options.splice(j,1);t.rows.forEach(r=>{if(Array.isArray(r[colId]))r[colId]=r[colId].filter(v=>v!==old);else if(r[colId]===old)r[colId]=''});save();closeDropdown();renderTable(t);toast('Option deleted')},true)}
 function manageCellOptions(colId){const t=getT(state.active);if(!t)return;const i=t.columns.findIndex(c=>c.id===colId);closeDropdown();optionsModal(i)}
@@ -352,7 +351,7 @@ function chooseDropdown(i,id,v){
   let cur=Array.isArray(t.rows[i][id])?t.rows[i][id]:(String(t.rows[i][id]??'').trim()?[String(t.rows[i][id])]:[]);
   if(c.multi){if(v==='')cur=[];else cur=cur.includes(v)?cur.filter(x=>x!==v):cur.concat(v);t.rows[i][id]=cur;save();
     const popup=$('activeDropdown');if(popup){popup.querySelectorAll('.selectChoice').forEach(btn=>{const name=btn.querySelector('span')?.textContent||'';const on=cur.includes(name);btn.classList.toggle('multiSelected',on);const tick=btn.querySelector('.choiceTick');if(tick)tick.textContent=on?'✓':''})}
-    const cellBtn=popup?.__cellButton;if(cellBtn){cellBtn.childNodes[0].textContent=cur.join(', ')||'Select option';cellBtn.classList.toggle('empty',!cur.length)}return;
+    const cellBtn=popup?.__cellButton;if(cellBtn){cellBtn.childNodes[0].textContent=cur.join(', ')||'';cellBtn.classList.toggle('empty',!cur.length)}return;
   }
   t.rows[i][id]=v;save();let sc=document.querySelector('.scroll'),sx=sc?.scrollLeft||0,sy=sc?.scrollTop||0;closeDropdown();renderTable(t);requestAnimationFrame(()=>{let ns=document.querySelector('.scroll');if(ns){ns.scrollLeft=sx;ns.scrollTop=sy}})
 }function setCell(i,id,v){let t=getT(state.active);if(!t)return;t.rows[i][id]=v;save();if(t.columns.some(c=>c.type==='formula')){let sc=document.querySelector('.scroll'),sx=sc?.scrollLeft||0,sy=sc?.scrollTop||0;renderTable(t);requestAnimationFrame(()=>{let ns=document.querySelector('.scroll');if(ns){ns.scrollLeft=sx;ns.scrollTop=sy}})}}
